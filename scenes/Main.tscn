@@ -1,0 +1,54 @@
+[gd_scene load_steps=11 format=3 uid="uid://bk7m5gckuitmf"]
+
+[ext_resource type="PackedScene" uid="uid://dcu2bvidfms02" path="res://assets/场景/scene.gltf" id="1"]
+[ext_resource type="PackedScene" uid="uid://sra52t2sx33a" path="res://assets/人物/glTF/Characters_Anne.gltf" id="2"]
+[ext_resource type="PackedScene" uid="uid://bbb0n5eldaq17" path="res://assets/人物/glTF/Characters_Henry.gltf" id="3"]
+[ext_resource type="PackedScene" uid="uid://cn2qgsocibmd5" path="res://assets/人物/glTF/Characters_Captain_Barbarossa.gltf" id="4"]
+[ext_resource type="Script" uid="uid://3g82queusotn" path="res://scripts/main.gd" id="5"]
+[ext_resource type="Script" uid="uid://dheiecfx0d2vg" path="res://scripts/player.gd" id="6"]
+[ext_resource type="Script" uid="uid://4kfjef8duxk7" path="res://scripts/third_person_camera.gd" id="7"]
+
+[sub_resource type="Sky" id="1"]
+
+[sub_resource type="Environment" id="2"]
+background_mode = 2
+sky = SubResource("1")
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.2
+
+[sub_resource type="CapsuleShape3D" id="3"]
+radius = 0.35
+height = 1.4
+
+[node name="Main" type="Node3D"]
+script = ExtResource("5")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9848077, 0.17364818, 0, -0.17364818, 0.9848077, 0, 1.5, 5)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.70710677, 0.70710677, 0, -0.70710677, 0.70710677, 0, 0, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("2")
+
+[node name="ImportedScene" parent="." instance=ExtResource("1")]
+
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+script = ExtResource("6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+shape = SubResource("3")
+
+[node name="Model" parent="Player" instance=ExtResource("3")]
+
+[node name="Pivot" type="Node3D" parent="Player"]
+script = ExtResource("7")
+
+[node name="Camera3D" type="Camera3D" parent="Player/Pivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.03738132, 0.316675, -3.8739185)
+current = true

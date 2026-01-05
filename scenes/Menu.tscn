@@ -1,0 +1,332 @@
+[gd_scene load_steps=9 format=3 uid="uid://menu_scene"]
+
+[ext_resource type="Script" path="res://scripts/menu.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://c2h2v4j6y6q2" path="res://assets/人物/glTF/Characters_Henry.gltf" id="2_henry"]
+[ext_resource type="PackedScene" uid="uid://d2h2v4j6y6q2" path="res://assets/人物/glTF/Characters_Anne.gltf" id="3_anne"]
+[ext_resource type="PackedScene" uid="uid://e2h2v4j6y6q2" path="res://assets/人物/glTF/Characters_Captain_Barbarossa.gltf" id="4_barbarossa"]
+[ext_resource type="PackedScene" uid="uid://dcu2bvidfms02" path="res://assets/场景/scene.gltf" id="5_env"]
+
+[sub_resource type="GDScript" id="bg_anim_script"]
+script/source = "extends Node3D
+
+@onready var camera_pivot = $CameraPivot
+
+func _process(delta):
+	camera_pivot.rotation.y += 0.2 * delta
+"
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(1, 1, 1, 1)
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 1.0
+
+[node name="Menu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="SubViewportContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="Background"]
+handle_input_locally = false
+size = Vector2i(1152, 648)
+render_target_update_mode = 4
+
+[node name="3DScene" type="Node3D" parent="Background/SubViewport"]
+script = SubResource("bg_anim_script")
+
+[node name="Environment" parent="Background/SubViewport/3DScene" instance=ExtResource("5_env")]
+
+[node name="CameraPivot" type="Node3D" parent="Background/SubViewport/3DScene"]
+
+[node name="Camera3D" type="Camera3D" parent="Background/SubViewport/3DScene/CameraPivot"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 2, 4)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Background/SubViewport/3DScene"]
+environment = SubResource("env")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Background/SubViewport/3DScene"]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 0, 0)
+shadow_enabled = false
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 0.3)
+
+[node name="StartScreen" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="StartButton" type="Button" parent="StartScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -50.0
+offset_right = 100.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 32
+text = "开始游戏"
+
+[node name="SelectionScreen" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="SelectionScreen"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 50.0
+offset_right = 100.0
+offset_bottom = 100.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 32
+text = "选择角色"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="SelectionScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -150.0
+offset_right = 400.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 50
+alignment = 1
+
+[node name="HenryContainer" type="SubViewportContainer" parent="SelectionScreen/HBoxContainer"]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
+stretch = true
+
+[node name="Background" type="ColorRect" parent="SelectionScreen/HBoxContainer/HenryContainer"]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.5, 0.5, 0.5, 0.2)
+
+[node name="Border" type="ReferenceRect" parent="SelectionScreen/HBoxContainer/HenryContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+border_color = Color(0.6, 0.6, 0.6, 1)
+border_width = 2.0
+editor_only = false
+
+[node name="SubViewport" type="SubViewport" parent="SelectionScreen/HBoxContainer/HenryContainer"]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(200, 300)
+render_target_update_mode = 4
+
+[node name="Node3D" type="Node3D" parent="SelectionScreen/HBoxContainer/HenryContainer/SubViewport"]
+
+[node name="Camera3D" type="Camera3D" parent="SelectionScreen/HBoxContainer/HenryContainer/SubViewport/Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 2)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="SelectionScreen/HBoxContainer/HenryContainer/SubViewport/Node3D"]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 0, 0)
+
+[node name="Model" parent="SelectionScreen/HBoxContainer/HenryContainer/SubViewport/Node3D" instance=ExtResource("2_henry")]
+
+[node name="HenryButton" type="Button" parent="SelectionScreen/HBoxContainer/HenryContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+flat = true
+
+[node name="Label" type="Label" parent="SelectionScreen/HBoxContainer/HenryContainer"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 34.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 24
+text = "亨利"
+horizontal_alignment = 1
+
+[node name="AnneContainer" type="SubViewportContainer" parent="SelectionScreen/HBoxContainer"]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
+stretch = true
+
+[node name="Background" type="ColorRect" parent="SelectionScreen/HBoxContainer/AnneContainer"]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.5, 0.5, 0.5, 0.2)
+
+[node name="Border" type="ReferenceRect" parent="SelectionScreen/HBoxContainer/AnneContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+border_color = Color(0.6, 0.6, 0.6, 1)
+border_width = 2.0
+editor_only = false
+
+[node name="SubViewport" type="SubViewport" parent="SelectionScreen/HBoxContainer/AnneContainer"]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(200, 300)
+render_target_update_mode = 4
+
+[node name="Node3D" type="Node3D" parent="SelectionScreen/HBoxContainer/AnneContainer/SubViewport"]
+
+[node name="Camera3D" type="Camera3D" parent="SelectionScreen/HBoxContainer/AnneContainer/SubViewport/Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 2)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="SelectionScreen/HBoxContainer/AnneContainer/SubViewport/Node3D"]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 0, 0)
+
+[node name="Model" parent="SelectionScreen/HBoxContainer/AnneContainer/SubViewport/Node3D" instance=ExtResource("3_anne")]
+
+[node name="AnneButton" type="Button" parent="SelectionScreen/HBoxContainer/AnneContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+flat = true
+
+[node name="Label" type="Label" parent="SelectionScreen/HBoxContainer/AnneContainer"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 34.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 24
+text = "Anne"
+horizontal_alignment = 1
+
+[node name="BarbarossaContainer" type="SubViewportContainer" parent="SelectionScreen/HBoxContainer"]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
+stretch = true
+
+[node name="Background" type="ColorRect" parent="SelectionScreen/HBoxContainer/BarbarossaContainer"]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.5, 0.5, 0.5, 0.2)
+
+[node name="Border" type="ReferenceRect" parent="SelectionScreen/HBoxContainer/BarbarossaContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+border_color = Color(0.6, 0.6, 0.6, 1)
+border_width = 2.0
+editor_only = false
+
+[node name="SubViewport" type="SubViewport" parent="SelectionScreen/HBoxContainer/BarbarossaContainer"]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(200, 300)
+render_target_update_mode = 4
+
+[node name="Node3D" type="Node3D" parent="SelectionScreen/HBoxContainer/BarbarossaContainer/SubViewport"]
+
+[node name="Camera3D" type="Camera3D" parent="SelectionScreen/HBoxContainer/BarbarossaContainer/SubViewport/Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 2)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="SelectionScreen/HBoxContainer/BarbarossaContainer/SubViewport/Node3D"]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 0, 0)
+
+[node name="Model" parent="SelectionScreen/HBoxContainer/BarbarossaContainer/SubViewport/Node3D" instance=ExtResource("4_barbarossa")]
+
+[node name="BarbarossaButton" type="Button" parent="SelectionScreen/HBoxContainer/BarbarossaContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+flat = true
+
+[node name="Label" type="Label" parent="SelectionScreen/HBoxContainer/BarbarossaContainer"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 34.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 24
+text = "Captain"
+horizontal_alignment = 1
+
+[connection signal="pressed" from="StartScreen/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="SelectionScreen/HBoxContainer/HenryContainer/HenryButton" to="." method="_on_henry_pressed"]
+[connection signal="pressed" from="SelectionScreen/HBoxContainer/AnneContainer/AnneButton" to="." method="_on_anne_pressed"]
+[connection signal="pressed" from="SelectionScreen/HBoxContainer/BarbarossaContainer/BarbarossaButton" to="." method="_on_barbarossa_pressed"]

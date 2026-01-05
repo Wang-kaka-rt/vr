@@ -10,16 +10,14 @@ config_version=5
 
 [application]
 
-config/name="Godot MCP"
-run/main_scene="uid://cj6x3fv3tu00f"
-config/features=PackedStringArray("4.4", "GL Compatibility")
-config/icon="res://icon.svg"
+config/name="New Project"
+run/main_scene="res://scenes/Menu.tscn"
+config/features=PackedStringArray("4.5", "Forward Plus")
 
-[editor_plugins]
+[autoload]
 
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+Global="*res://scripts/Global.gd"
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method.mobile="forward_plus"
