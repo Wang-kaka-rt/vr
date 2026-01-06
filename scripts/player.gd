@@ -1,6 +1,7 @@
 extends CharacterBody3D
 
 signal health_changed(current, max)
+signal score_changed(new_score)
 signal player_died
 
 @export var speed := 10.0
@@ -24,8 +25,9 @@ var react_anim := "" # 受击动画
 var death_anim := "" # 死亡动画
 var is_attacking := false
 
-var health := 10
-var max_health := 10
+var health := 100
+var max_health := 100
+var score := 0
 
 func _ready():
 	add_to_group("Player")
@@ -281,8 +283,8 @@ func _on_animation_finished(anim_name):
 func _deal_damage():
 	# 扇形攻击判定
 	var enemies = get_tree().get_nodes_in_group("Enemies")
-	var hit_range = 3.5 # 攻击距离
-	var hit_angle = 120.0 # 扇形角度
+	var hit_range = 10.0 # 攻击距离 (Increased for debugging)
+	var hit_angle = 360.0 # 扇形角度 (Increased for debugging)
 	
 	var forward = -global_transform.basis.z.normalized()
 	
@@ -291,29 +293,22 @@ func _deal_damage():
 	for enemy in enemies:
 		if not is_instance_valid(enemy): continue
 		
-		var dir_to_enemy = enemy.global_position - global_position
-		var dist = dir_to_enemy.length()
+		# Calculate distance ignoring Y axis (height)
+		var flat_pos = Vector3(global_position.x, 0, global_position.z)
+		var flat_enemy_pos = Vector3(enemy.global_position.x, 0, enemy.global_position.z)
+		var dist = flat_pos.distance_to(flat_enemy_pos)
 		
-		# print("Debug: Checking enemy ", enemy.name, " Dist: ", dist)
+		print("Debug: Checking enemy ", enemy.name, " Dist: ", dist)
 		
 		if dist < hit_range:
-			dir_to_enemy = dir_to_enemy.normalized()
+			var dir_to_enemy = (enemy.global_position - global_position).normalized()
 			var angle = rad_to_deg(forward.angle_to(dir_to_enemy))
 			
-			print("Debug: Enemy ", enemy.name, " within range. Angle: ", angle, " Limit: ", hit_angle / 2.0)
-			
-			# 临时放宽角度限制进行测试，如果依然打不中，说明是其他问题
-			# if angle < hit_angle / 2.0:
-			if true: 
-				# Hit!
+			# Check angle (360 covers everything nearby)
+			if angle < hit_angle / 2.0:
 				if enemy.has_method("take_damage"):
 					print("Hit enemy: ", enemy.name)
 					enemy.take_damage(1)
-				else:
-					print("Enemy ", enemy.name, " has no take_damage method")
-		else:
-			pass
-			# print("Debug: Enemy ", enemy.name, " out of range (", hit_range, ")")
 
 func _physics_process(delta):
 	var input_dir = Vector2.ZERO
@@ -443,6 +438,19 @@ func _select_anim_priority(list: Array, prefers: Array, avoids: Array) -> String
 			if n.find(p) != -1:
 				return String(name)
 	return ""
+
+func add_score(amount: int):
+	score += amount
+	emit_signal("score_changed", score)
+	print("Score updated: ", score)
+
+func heal(amount: int):
+	if health <= 0: return # Dead players can't be healed
+	health += amount
+	if health > max_health:
+		health = max_health
+	emit_signal("health_changed", health, max_health)
+	print("Healed! HP: ", health)
 
 func take_damage(amount: int):
 	health -= amount

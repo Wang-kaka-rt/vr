@@ -5,17 +5,31 @@ const TARGET_ENEMY_COUNT = 5
 const SPAWN_CHECK_INTERVAL = 2.0
 const DESPAWN_RANGE = 100.0 # 增大移除距离，防止频繁生成销毁
 
+# Collectible Settings
+const MAX_COLLECTIBLES = 20
+const COLLECTIBLE_SPAWN_INTERVAL = 3.0
+const CollectibleScript = preload("res://scripts/collectible.gd")
+var collectible_count = 0
+var score_label: Label
+var level_label: Label
+var current_level = 1
+var level_popup_label: Label
+var level_overlay: Control
+
 var available_enemy_paths = []
 var enemy_scenes = {} # 预加载的场景资源
 var enemy_pool = [] # 敌人对象池
 var active_enemy_count = 0 # 缓存当前敌人数量，减少遍历开销
 var spawn_timer: Timer
+var collectible_timer: Timer
 var health_bar: ProgressBar
 var game_over_ui: Control
 
 func _ready():
-	_create_debug_ui()
+	# _create_debug_ui() # Removed per user request
 	_create_player_health_ui()
+	_create_score_ui()
+	_create_level_ui()
 	_create_game_over_ui() # 预先创建但不显示
 	
 	# 性能优化：强制关闭阴影，极大减少GPU开销
@@ -41,6 +55,9 @@ func _ready():
 		if debug_label:
 			debug_label.set_meta("collision_count", count)
 	
+	# Spawn Houses
+	_spawn_houses()
+	
 	# Randomize Player Spawn Position
 	var player = get_node_or_null("Player")
 	if player:
@@ -53,6 +70,10 @@ func _ready():
 		# Connect death signal
 		if player.has_signal("player_died"):
 			player.player_died.connect(_on_player_died)
+			
+		# Connect score signal
+		if player.has_signal("score_changed"):
+			player.score_changed.connect(_on_score_changed)
 			
 		# 确保玩家模型不会因为阴影设置导致性能问题
 		var player_mesh = player.find_child("Model", true, false)
@@ -96,6 +117,42 @@ func _ready():
 	
 	# 启动预加载流程
 	_prepopulate_pool()
+	
+	collectible_timer = Timer.new()
+	collectible_timer.wait_time = COLLECTIBLE_SPAWN_INTERVAL
+	collectible_timer.autostart = true
+	collectible_timer.timeout.connect(_on_collectible_timer_timeout)
+	add_child(collectible_timer)
+
+func _spawn_houses():
+	var house_configs = [
+		{"path": "res://assets/人物/glTF/Environment_House1.gltf", "pos": Vector3(35, 0, -20), "rot": 0.0},
+		{"path": "res://assets/人物/glTF/Environment_House2.gltf", "pos": Vector3(-30, 0, 45), "rot": PI/4},
+		{"path": "res://assets/人物/glTF/Environment_House3.gltf", "pos": Vector3(-25, 0, -40), "rot": -PI/3}
+	]
+	
+	print("Spawning houses...")
+	for config in house_configs:
+		var scene = load(config.path)
+		if scene:
+			var house = scene.instantiate()
+			add_child(house)
+			house.global_position = config.pos
+			house.rotation.y = config.rot
+			# Scale up houses to be larger than player
+			house.scale = Vector3(3.0, 3.0, 3.0)
+			
+			# Generate collision (reuse env collision logic for optimization)
+			_create_env_collision(house)
+			
+			# Snap to ground
+			# Note: We need to wait a physics frame if we just added collision, 
+			# but since we rely on existing terrain collision, it should be fine.
+			# However, if the house itself has a floor that we just added collision to, 
+			# _place_on_ground excludes 'house' so it won't hit itself.
+			_place_on_ground(house)
+		else:
+			print("Failed to load house: ", config.path)
 
 func _prepopulate_pool():
 	print("Pre-populating enemy pool...")
@@ -275,6 +332,133 @@ func _on_player_health_changed(current, max_val):
 			if style is StyleBoxFlat:
 				style.bg_color = Color(0.2, 0.8, 0.2) # Green
 
+func _create_score_ui():
+	var canvas = get_node_or_null("DebugCanvas")
+	if not canvas: return
+	
+	score_label = Label.new()
+	score_label.name = "ScoreLabel"
+	score_label.text = "Score: 0"
+	score_label.position = Vector2(20, 60)
+	score_label.add_theme_font_size_override("font_size", 24)
+	score_label.add_theme_color_override("font_color", Color.GOLD)
+	canvas.add_child(score_label)
+
+func _on_score_changed(new_score):
+	if score_label:
+		score_label.text = "Score: " + str(new_score)
+	_check_level_progression(new_score)
+
+func _check_level_progression(score):
+	var previous_level = current_level
+	
+	if current_level == 1 and score >= 100:
+		current_level = 2
+		_show_level_popup("LEVEL 2\nTarget: 200")
+	elif current_level == 2 and score >= 200:
+		current_level = 3
+		_show_level_popup("LEVEL 3\nTarget: 500\nWARNING: Enemies Stronger!")
+		_update_enemy_difficulty()
+	elif current_level == 3 and score >= 500:
+		_game_clear()
+		
+	if current_level != previous_level:
+		_update_level_ui()
+
+func _update_enemy_difficulty():
+	# Level 3: Increase enemy damage to 40
+	if current_level >= 3:
+		print("Level 3 reached! Increasing enemy damage to 40.")
+		get_tree().call_group("Enemies", "set", "attack_damage", 40)20)
+
+func _game_clear():
+	print("Game Clear!")
+	if game_over_ui:
+		var label = game_over_ui.find_child("TitleLabel", true, false)
+		if label:
+			label.text = "YOU WIN!"
+			label.add_theme_color_override("font_color", Color.GREEN)
+		
+		var btn = game_over_ui.find_child("RestartButton", true, false)
+		if btn:
+			btn.text = "Returning to Menu..."
+			btn.disabled = true
+		
+		game_over_ui.visible = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		get_tree().paused = true # Pause game on win
+		
+		# Return to Menu after 3 seconds (process_always=true to run while paused)
+		await get_tree().create_timer(3.0, true).timeout
+		get_tree().paused = false # Unpause before changing scene
+		get_tree().change_scene_to_file("res://scenes/Menu.tscn")
+
+func _create_level_ui():
+	var canvas = get_node_or_null("DebugCanvas")
+	if not canvas: return
+	
+	level_label = Label.new()
+	level_label.name = "LevelLabel"
+	level_label.position = Vector2(20, 100)
+	level_label.add_theme_font_size_override("font_size", 24)
+	level_label.add_theme_color_override("font_color", Color.CYAN)
+	canvas.add_child(level_label)
+	
+	# Level Transition Overlay (Mask)
+	level_overlay = Panel.new()
+	level_overlay.name = "LevelOverlay"
+	level_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	level_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.85) # Dark semi-transparent mask
+	level_overlay.add_theme_stylebox_override("panel", style)
+	level_overlay.modulate.a = 0 # Hidden by default
+	canvas.add_child(level_overlay)
+	
+	# Level Popup Label (centered in overlay)
+	level_popup_label = Label.new()
+	level_popup_label.name = "LevelPopupLabel"
+	# Center in overlay
+	level_popup_label.anchor_left = 0.5
+	level_popup_label.anchor_top = 0.5
+	level_popup_label.anchor_right = 0.5
+	level_popup_label.anchor_bottom = 0.5
+	level_popup_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	level_popup_label.grow_vertical = Control.GROW_DIRECTION_BOTH
+	
+	level_popup_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_popup_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	level_popup_label.add_theme_font_size_override("font_size", 64)
+	level_popup_label.add_theme_color_override("font_color", Color.GOLD)
+	level_overlay.add_child(level_popup_label)
+	
+	_update_level_ui()
+
+func _update_level_ui():
+	if level_label:
+		var target = 0
+		if current_level == 1: target = 100
+		elif current_level == 2: target = 200
+		elif current_level == 3: target = 500
+		
+		level_label.text = "Level: %d | Target: %d" % [current_level, target]
+
+func _show_level_popup(text):
+	if level_overlay and level_popup_label:
+		level_popup_label.text = text
+		
+		# Animation
+		var tween = create_tween()
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		
+		# Fade In
+		tween.tween_property(level_overlay, "modulate:a", 1.0, 0.5)
+		tween.tween_interval(2.5) # Show for 2.5 seconds
+		# Fade Out
+		tween.tween_property(level_overlay, "modulate:a", 0.0, 0.5)
+
+
 func _create_game_over_ui():
 	var canvas = get_node_or_null("DebugCanvas")
 	if not canvas: return
@@ -301,6 +485,7 @@ func _create_game_over_ui():
 	
 	# 标题
 	var label = Label.new()
+	label.name = "TitleLabel"
 	label.text = "GAME OVER"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 64)
@@ -320,6 +505,10 @@ func _create_game_over_ui():
 
 func _on_player_died():
 	print("Main: Player died signal received.")
+	
+	# Wait for death animation to finish (approx 2.5 seconds)
+	await get_tree().create_timer(2.5).timeout
+	
 	if game_over_ui:
 		game_over_ui.visible = true
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE) # 释放鼠标
@@ -424,6 +613,13 @@ func _spawn_single_enemy():
 		enemy.visible = true
 		if not enemy.is_in_group("Enemies"):
 			enemy.add_to_group("Enemies")
+			
+		# Set difficulty based on level
+		var dmg = 10
+		if current_level >= 3:
+			dmg = 30
+		enemy.set("attack_damage", dmg)
+		
 		active_enemy_count += 1
 		
 		# Set position
@@ -450,3 +646,79 @@ func _place_on_ground(node: Node3D):
 	if result.has("position"):
 		# 稍微抬高一点，防止碰撞体嵌入地面导致物理抖动
 		node.global_position = result["position"] + Vector3(0, 0.1, 0)
+
+func _on_collectible_timer_timeout():
+	# print("Collectible timer timeout. Count: ", collectible_count, "/", MAX_COLLECTIBLES)
+	if collectible_count < MAX_COLLECTIBLES:
+		_spawn_collectible()
+
+func _spawn_collectible():
+	var rand = randf()
+	var type = 0
+	var path = ""
+	var scale_val = 2.0
+	
+	# Probability Distribution
+	if rand < 0.30: # 30% Money Bag (+5 Score)
+		type = 0
+		path = "res://assets/人物/glTF/Prop_GoldBag.gltf"
+		scale_val = 5.0
+	elif rand < 0.55: # 25% Coin Pile (+10 Score)
+		type = 1
+		path = "res://assets/人物/glTF/Prop_Coins.gltf"
+		scale_val = 5.0
+	elif rand < 0.70: # 15% Gold Chest (+20 Score)
+		type = 2
+		path = "res://assets/人物/glTF/Prop_Chest_Gold.gltf"
+		scale_val = 4.0
+	elif rand < 0.90: # 20% Emerald (+10 HP)
+		type = 3
+		path = "res://assets/人物/glTF/UI_Gem_Green.gltf"
+		scale_val = 8.0 # Gems are likely small
+	else: # 10% Sapphire (+20 HP)
+		type = 4
+		path = "res://assets/人物/glTF/UI_Gem_Blue.gltf"
+		scale_val = 8.0
+	
+	var scene = load(path)
+	if not scene:
+		print("Failed to load collectible: ", path)
+		return
+
+	var col = Area3D.new()
+	col.name = "Collectible_" + str(randi())
+	col.set_script(CollectibleScript)
+	col.set("type", type)
+	add_child(col)
+	
+	# Add Model
+	var model = scene.instantiate()
+	model.scale = Vector3.ONE * scale_val
+	col.add_child(model)
+	
+	# Add Collision Shape
+	var shape = CollisionShape3D.new()
+	shape.shape = SphereShape3D.new()
+	shape.shape.radius = 2.0 # Generous hit radius
+	col.add_child(shape)
+	
+	# Random Position
+	var player = get_node_or_null("Player")
+	var center = Vector3.ZERO
+	if player: center = player.global_position
+	
+	var angle = randf() * TAU
+	var radius = randf_range(5.0, 15.0) # Reduce radius to make them easier to find for testing
+	col.global_position = center + Vector3(cos(angle), 0, sin(angle)) * radius
+	
+	# Snap to ground then float
+	_place_on_ground(col)
+	col.position.y += 0.5 # Lower floating height per user request (was 1.5)
+	
+	# Initialize floating
+	col.start_floating()
+	
+	print("Spawned collectible: ", path, " at ", col.global_position)
+	
+	collectible_count += 1
+	col.tree_exited.connect(func(): collectible_count -= 1)

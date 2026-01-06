@@ -10,6 +10,7 @@ extends CharacterBody3D
 @export var lost_range := 60.0      # 丢失范围：超出此范围停止追击
 @export var wander_radius := 5.0    # 随机漫步半径
 @export var avoidance_ray_length := 2.5 # 避障射线长度
+@export var attack_damage := 1 # 攻击伤害
 
 # Optimization: Cached squared ranges
 var attack_range_sq: float
@@ -47,6 +48,7 @@ var attack_anim := ""
 var react_anim := ""
 var death_anim := ""
 var is_attacking := false
+var is_dying := false # Prevent double death/score
 var last_attack_time := 0.0
 
 var health := 2
@@ -392,11 +394,13 @@ func _perform_attack():
 				var dist = global_position.distance_to(player.global_position)
 				# print("Debug: Enemy Attack Check. Dist: ", dist, " Range: ", attack_range + 1.0)
 				if player.has_method("take_damage") and dist < attack_range + 1.0:
-					print("Enemy hitting player!")
-					player.take_damage(1)
+					print("Enemy hitting player with damage: ", attack_damage)
+					player.take_damage(attack_damage)
 		)
 
 func take_damage(amount: int):
+	if is_dying: return # Ignore damage if already dying
+	
 	health -= amount
 	if health < 0:
 		health = 0
@@ -415,10 +419,21 @@ func take_damage(amount: int):
 			print("No react anim found or hit_node missing")
 
 func _die():
+	if is_dying: return
+	is_dying = true
+	
+	# Add score to player
+	if player and player.has_method("add_score"):
+		player.add_score(50)
+		print("Enemy killed! Player score +50")
+	
 	set_physics_process(false)
 	# 禁用碰撞
 	var col = get_node_or_null("CollisionShape3D")
 	if col: col.disabled = true
+	
+	# 从敌人组移除，防止被再次搜索到
+	remove_from_group("Enemies")
 	
 	if death_anim != "":
 		animation_tree.active = false

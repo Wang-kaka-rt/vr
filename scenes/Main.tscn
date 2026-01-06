@@ -1,9 +1,7 @@
-[gd_scene load_steps=11 format=3 uid="uid://bk7m5gckuitmf"]
+[gd_scene load_steps=9 format=3 uid="uid://bk7m5gckuitmf"]
 
 [ext_resource type="PackedScene" uid="uid://dcu2bvidfms02" path="res://assets/场景/scene.gltf" id="1"]
-[ext_resource type="PackedScene" uid="uid://sra52t2sx33a" path="res://assets/人物/glTF/Characters_Anne.gltf" id="2"]
 [ext_resource type="PackedScene" uid="uid://bbb0n5eldaq17" path="res://assets/人物/glTF/Characters_Henry.gltf" id="3"]
-[ext_resource type="PackedScene" uid="uid://cn2qgsocibmd5" path="res://assets/人物/glTF/Characters_Captain_Barbarossa.gltf" id="4"]
 [ext_resource type="Script" uid="uid://3g82queusotn" path="res://scripts/main.gd" id="5"]
 [ext_resource type="Script" uid="uid://dheiecfx0d2vg" path="res://scripts/player.gd" id="6"]
 [ext_resource type="Script" uid="uid://4kfjef8duxk7" path="res://scripts/third_person_camera.gd" id="7"]
@@ -35,6 +33,7 @@ shadow_enabled = true
 environment = SubResource("2")
 
 [node name="ImportedScene" parent="." instance=ExtResource("1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30807495, 7.6293945e-06, -0.21526337)
 
 [node name="Player" type="CharacterBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
