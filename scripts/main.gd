@@ -369,7 +369,7 @@ func _update_enemy_difficulty():
 	# Level 3: Increase enemy damage to 40
 	if current_level >= 3:
 		print("Level 3 reached! Increasing enemy damage to 40.")
-		get_tree().call_group("Enemies", "set", "attack_damage", 40)20)
+		get_tree().call_group("Enemies", "set", "attack_damage", 40)
 
 func _game_clear():
 	print("Game Clear!")
