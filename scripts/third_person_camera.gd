@@ -19,20 +19,24 @@ func _ready():
     set_as_top_level(true)
 
 func _unhandled_input(event):
-    # 移除右键限制，直接鼠标移动控制视角（更符合常规 TPS），或者保留右键取决于用户习惯
-    # 这里先保留右键限制，但建议用户如果想要类似 PUBG/原神的操作可以去掉
-    if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
-        yaw -= event.relative.x * sens * 0.01
+	if get_viewport().use_xr:
+		return
+	# 移除右键限制，直接鼠标移动控制视角（更符合常规 TPS），或者保留右键取决于用户习惯
+	# 这里先保留右键限制，但建议用户如果想要类似 PUBG/原神的操作可以去掉
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		yaw -= event.relative.x * sens * 0.01
         pitch -= event.relative.y * sens * 0.01
         pitch = clamp(pitch, min_pitch, max_pitch)
         rotation_degrees = Vector3(pitch, yaw, 0)
         _mouse_timer = mouse_wait_time # 重置计时器
 
 func _physics_process(delta):
-    if not camera:
-        return
-    var target := get_parent()
-    if not target or not (target is Node3D):
+	if get_viewport().use_xr:
+		return
+	if not camera:
+		return
+	var target := get_parent()
+	if not target or not (target is Node3D):
         return
     
     # 手动跟随目标位置

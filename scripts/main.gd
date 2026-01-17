@@ -26,6 +26,7 @@ var health_bar: ProgressBar
 var game_over_ui: Control
 
 func _ready():
+	_try_enable_openxr()
 	# _create_debug_ui() # Removed per user request
 	_create_player_health_ui()
 	_create_score_ui()
@@ -123,6 +124,34 @@ func _ready():
 	collectible_timer.autostart = true
 	collectible_timer.timeout.connect(_on_collectible_timer_timeout)
 	add_child(collectible_timer)
+
+func _try_enable_openxr() -> bool:
+	if not (OS.has_feature("android") or OS.has_feature("xr")):
+		return false
+	
+	var openxr_interface = XRServer.find_interface("OpenXR")
+	if not openxr_interface:
+		return false
+	
+	var ok = openxr_interface.initialize()
+	if not ok:
+		return false
+	
+	get_viewport().use_xr = true
+	
+	var xr_camera: Camera3D = get_node_or_null("Player/XROrigin3D/XRCamera3D")
+	if xr_camera:
+		xr_camera.current = true
+	
+	var third_person_camera: Camera3D = get_node_or_null("Player/Pivot/Camera3D")
+	if third_person_camera:
+		third_person_camera.current = false
+	
+	var root_camera: Camera3D = get_node_or_null("Camera3D")
+	if root_camera:
+		root_camera.current = false
+	
+	return true
 
 func _spawn_houses():
 	var house_configs = [
@@ -369,7 +398,7 @@ func _update_enemy_difficulty():
 	# Level 3: Increase enemy damage to 40
 	if current_level >= 3:
 		print("Level 3 reached! Increasing enemy damage to 40.")
-		get_tree().call_group("Enemies", "set", "attack_damage", 40)20)
+		get_tree().call_group("Enemies", "set", "attack_damage", 40)
 
 func _game_clear():
 	print("Game Clear!")

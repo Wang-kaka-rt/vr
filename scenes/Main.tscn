@@ -51,3 +51,7 @@ script = ExtResource("7")
 [node name="Camera3D" type="Camera3D" parent="Player/Pivot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.03738132, 0.316675, -3.8739185)
 current = true
+
+[node name="XROrigin3D" type="XROrigin3D" parent="Player"]
+
+[node name="XRCamera3D" type="XRCamera3D" parent="Player/XROrigin3D"]
